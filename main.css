@@ -30,6 +30,8 @@
 
 .dexent {
 	display: grid;
+	font-size: 12px;
+	font-size: 2vmin;
 	grid-template-columns: 96px 33px 154px 96px;
 	grid-template-rows: max-content 33px;
 }
@@ -42,8 +44,11 @@
 	background-color: #7E7;
 }
 
+#choice_holder > .dexent.choice_selected:hover {
+	background-color: #6D6;
+}
+
 .tsect_inline {
-	margin-top: -0.2em;
 	margin-left: 1em;
 	margin-right: 1em;
 	padding-left: 0.2em;
