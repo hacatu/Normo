@@ -62,8 +62,9 @@ function initRankedList(){
 
 function toggleTargetSelected(event){
 	let target = event.target;
+	console.log(target);
 	while(target && !target.classList.contains("dexent")){
-		target = target.parent;
+		target = target.parentElement;
 	}
 	if(target){
 		if(target.classList.contains("choice_selected")){
