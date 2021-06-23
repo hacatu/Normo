@@ -30,8 +30,6 @@
 
 .dexent {
 	display: grid;
-	font-size: 12px;
-	font-size: 2vmin;
 	grid-template-columns: 96px 33px 154px 96px;
 	grid-template-rows: max-content 33px;
 }
@@ -75,6 +73,8 @@
 }
 
 .dexname {
+	font-size: 12px;
+	font-size: 2vmin;
 	align-self: end;
 	grid-column-start: 2;
 	grid-column-end: 4;
