@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>All the Pokemon</title>
+	<link rel="stylesheet" type="text/css" href="main.css" media="screen"/>
+	<link rel="icon" type="image/x-icon" href="trophy.png"/>
+	<script type="text/javascript">
+		MathJax = {
+		  tex: {inlineMath: [['$', '$'], ['\\(', '\\)']]}
+		};
+	</script>
+	<script type="text/javascript" id="MathJax-script" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-svg-full.min.js" integrity="sha512-RvtSA5grZZKDz4mg1vcso9AZdczZg631CC1pbqp+GJC/3mqAcSSy1RJXnini9TOqXQQc7K0zaYWd4XdQLG92/Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<script type="text/javascript" id="Plotly-script" async src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.1.0/plotly.min.js" integrity="sha512-QXSqRkRUaWwKvRnnpDzsWHL7bgkF6J2XCUhW68FdR0MuL29QMzj5GmlrD0Wcu/G9WUN+bgJfOhoXlFLXb01kPQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<script type="text/javascript" id="Mathjs-script" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.2/math.min.js" integrity="sha512-X8Y5jFgsf/zxQN1X83Tdp1eHCzY52EfcYrDpbLxffRpF3Cyub7v9Jo0b5uwt1x6/h3ZnFzjL+yK12y1f7Q2zhg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<script type="text/javascript" src="explanation_plots.js"></script>
+</head>
+<body>
+	<div id="float_hdr">
+		<table>
+			<colgroup>
+				<col span="1" style="width: 33%;">
+				<col span="1" style="width: 33%;">
+				<col span="1" style="width: 33%;">
+			</colgroup>
+			<tbody>
+				<tr>
+					<td class="cur_subpage_link">Rating/Ranking</td>
+					<td class="subpage_link"><a href="index.html">Demo</a></td>
+					<td class="cur_subpage_link">Explanation</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div id="hidden_hdr"></div>
+	<div class="subpage" id="main_page">
+		<div class="tsect">
+			<h1>Introduction</h1>
+			<div class="tsect_body">
+				Whether it be rating players in a competitive game or ranking a large number of choices in a robust way, rating
+				systems such as Elo and Glicko have a lot of uses.
+				<p>
+					The key assumption underpinning most ranking systems is that we can model the performance of players using some
+					statistical distribution.  That way, we can model two players competing in a game simply by generating a random
+					number from each of their performance distributions and seeing which is larger.  For example, we might assume players'
+					performance is normally distributed, so that player A's performance is modeled by $A\sim N(\mu_A,\sigma_A)$ and player
+					B's performance is modeled by $B\sim N(\mu_B,\sigma_A)$.  Then we can find the probability of player A beating player B
+					by finding $P(A>B|A\sim N(\mu_A,\sigma_A), B\sim N(\mu_B,\sigma_B))$.
+				</p>
+				<p>
+					The players' ratings consists of both $\mu_A$ and $\sigma_A$, or possibly fewer or more parameters depending on the
+					performance distribution family.  For normal distributions, we have these two parameters.  However, Elo rating uses
+					Logistic distributions with a fixed scale parameter, and Glicko uses Logistic distributions with varying scale
+					parameters.
+				</p>
+				<p>
+					When two players compete in a game, their ratings are updated afterwards based on the outcome of the game.  The center
+					parameter is the player's average skill according to the model, and simply put the losing player has their center
+					parameter (rating) decreased and the winning player has their rating increased.  How large this increase/decrease is
+					depends on what the probability of the win/loss was and potentially other factors.
+				</p>
+			</div>
+
+			<h1>A guessing game</h1>
+			<div class="tsect_body">
+				Consider a simple guessing game where we want to find a random real number $X$ taken from a uniform distribution between $0$ and $1$.
+				Almost surely we will never guess the exact number, but each time we make a guess we are told whether the number is larger or
+				smaller than the guess.
+				<p>
+					In particular, after we observe $X>G$ for some guess $G$, we have a posterior distribution which represents the updated
+					distribution of $X$ given the new information that $X>G$.  For a uniform distribution, the posterior distribution given
+					$X>G$ or $X&ltG$ is also a uniform distribution.
+				</p>
+				<p>
+					However, for most distributions the posterior distribution is not the same.  We will explore this more later, although
+					when we do we will be working with the posterior distribution of $A$ given $A>B$ where $A$ and $B$ are both  normally
+					distributed (and neither is constant).  In this case, $A$ can technically have any value in its support, but the shape of
+					its distribution is concentrated a little further to the right.
+				</p>
+			</div>
+
+			<h1>Using rating systems to rank things</h1>
+			<div class="tsect_body">
+				Suppose we have a very large number of choices we want a user to rank, so that it is not practical to consider all
+				of them at once.  We present the user with a handful of choices over and over until we can determine a ranking.
+				There are many ways to do this, but the first thing to consider is what to ask the user about each group of choices.
+				We can ask the user to
+				<ul>
+					<li>select their single favorite</li>
+					<li>select $1$ to $k-1$ out of $k$</li>
+					<li>put the choices in order of preference</li>
+					<li>pick a favorite out of every pair</li>
+				</ul>
+				or possibly other things.
+				<p>
+					Having a single user rate each choice is not a good approach.  It is easier to compare a handful of choices to each
+					other than to assign an exact preference to many decimal places to a bunch of choices.  Having the user select some
+					strict nonempty subset of the choices is the best approach, because this is the easiest for the user to decide so
+					options that the user prefers about the same are handled better.
+				</p>
+				<p>
+					The next two things we need to determine are how to choose the subset of choices we present the user with at each
+					step, and how to use the user's choices to rank the choices.  For the second, we have a couple options.
+					<ul>
+						<li>Create a directed acyclic graph among the choices and continue querying the user until the graph has a unique
+						topological ordering</li>
+						<li>Give each choice a rating using some system such as Elo</li>
+					</ul>
+				</p>
+				<p>
+					The first option seems better at first since the second option seems like overkill.  This is inspired by the ranked
+					pairs voting method, which is a voting method with a lot of desirable properties.  In this method, each voter
+					chooses a favorite candidate from each pair of candidates.  Then, votes are totalled for each pair and for each pair
+					from the one with the largest percentage victory to the smallest we add an edge to a DAG from the winner to the loser.
+					If this edge would introduce a cycle, we omit it.  We can stop early if there is a unique topological ordering on the
+					graph so far.
+				</p>
+				<p>
+					However, many of the reasons why ranked pairs voting works so well as a voting method leave it ill suited to
+					ranking the preferences of a single user.
+					<ul>
+						<li>ranked pairs voting deals with a low number of choices so that voters manually selecting a favorite from each pair is reasonable</li>
+						<li>ranked pairs voting has a large number of voters so how decisively the winner of each pair won can be quantified</li>
+					</ul>
+				</p>
+				<p>
+					With a single user picking their favorite for each pair of many small subsets sequentially, we don't get information about
+					all pairs (unless we query the user $O(n^2)$ times) and we can't order preferences by decisiveness.  This makes cycles
+					really problematic.  We can just add edges in the order we see them and omit edges that would create cycles, but this does
+					not handle inconsistent or intransitive preferences from the user.  Moreover, having the
+					user select multiple favorites from each subset is better than having the user pick a favorite from each pair in each
+					subset, as discussed.  This is the motivation for using a rating system like Elo.
+				</p>
+				<p>
+					Using a rating system means that we can deal with inconsistent and intransitive preferences robustly, and extrapolate
+					precise ratings for each choice which are as consistent with each other and the user's choices as possible.
+				</p>
+				<p>
+					Like in the Guessing game example, we do not know the true rating of any of the choices and we refine our estimates of them.
+					However, honing in on ratings is significantly more complicated than honing in on a single real number.  For one thing, we have
+					many ratings we need to hone in on.  For another, the performance distribution is only an approximation of player skill or user
+					choice preference, and this skill/preference can even change over time.
+				</p>
+			</div>
+
+			<h2>Normal Posterior Example</h2>
+			<div class="tsect_body">
+				<table><tbody><tr>
+					<td>
+						<div id="plot1"></div>
+					</td>
+					<td>
+						$A$ and $B$ are normal random variables with mean $0$ and $1$ respectively and standard deviation $1$, $A|A>B$ is the posterior
+						distribution of $A$ given $A>B$, and $~A|A>B$ is a normal approximation to the posterior distribution.  This approximation is
+						chosen by matching the mean and variance of the true posterior.  We will be deriving all of these equations in the following
+						sections.
+					</td>
+				</tr></tbody></table>
+			</div>
+
+			<h1>Towards a basic Normal rating system</h1>
+			<div class="tsect_body">
+				As mentioned in the introduction, Elo uses Logistic distributions with a fixed scale parameter to model players'
+				performance distributions, and Glicko uses Logistic distributions with each player having their own scale parameter.
+				Having a center and scale parameter for each player is useful because it allows us to model performance variability as
+				well as average performance.  However, it is difficult to work with logisitic distributions with different scale parameters
+				so we will begin with normal distributions which are very well behaved.
+				<p>
+					The normal distribution has two parameters, mean $\mu$ and standard deviation $\sigma$.  Its pdf is
+					$f(x;\mu,\sigma)=\frac{1}{\sigma\sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2}$ and its cdf is
+					$F(x;\mu,\sigma)=\Phi(\frac{x-\mu}{\sigma})$ where $\Phi(x)$ is the cdf of the standard normal distribution with mean 0 and
+					standard deviation 1, namely $\Phi(x)=\frac{1}{2}\left(1+\mathrm{erf}(\frac{x}{\sqrt{2}})\right)$.
+				</p>
+			</div>
+
+			<h2>An affine function of a normal random variable is normally distributed</h2>
+			<div class="tsect_body">
+				If a random variable $X$ has Normal distribution with mean $\mu$ and standard deviation $\sigma$, we write
+				$X\sim N(\mu,\sigma)$.  There are a few properties we will prove: first, we want to show if $X\sim N(\mu,\sigma)$,
+				$(aX+b)\sim N(a\mu+b,|a|\sigma)$.  Equivalently, we want to show $F(x;\mu,\sigma)=F(ax+b;a\mu+b,|a|\sigma)$.  Because of the shared boundary condition, it is equivalent to show the derivatives of both sides are equal:
+				$$f(x;\mu,\sigma)=|a|f(ax+b;a\mu+b,|a|\sigma)$$
+				$$\frac{1}{\sigma\sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2}=\frac{|a|}{|a|\sigma\sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{(ax+b)-(a\mu+b)}{|a|\sigma}\right)^2}$$
+				The $b$'s in the rhs exponent cancel and then the $a$'s do as well, leaving both sides equal as desired.
+			</div>
+
+			<h2>A linear combination of normal random variables is normally distributed</h2>
+			<div class="tsect_body">
+				Next, we want to show if $C=A+B$ where $A\sim N(\mu_A,\sigma_A)$ and $B\sim N(\mu_B,\sigma_B)$ then
+				$C\sim N(\mu_C,\sigma_C)$, as well as find the particular parameters of the distribution of $C$.
+				<p>
+					\begin{align*}
+					f_C(x)&=\int_{-\infty}^\infty f_A(x-y)f_B(y)dy\\
+					&=\int_{-\infty}^\infty \frac{1}{\sigma_A\sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{x-y-\mu_A}{\sigma_A}\right)^2}\frac{1}{\sigma_B\sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{y-\mu_B}{\sigma_B}\right)^2}dy\\
+					&=\int_{-\infty}^\infty \frac{1}{2\pi\sigma_A\sigma_B}e^{-\frac{1}{2}\left(\left(\frac{y-(x-\mu_A)}{\sigma_A}\right)^2+\left(\frac{y-\mu_B}{\sigma_B}\right)^2\right)}dy\\
+					&=\int_{-\infty}^\infty \frac{1}{2\pi\sigma_A\sigma_B}e^{-\frac{1}{2}\left(\frac{\sigma_B^2 y^2-2\sigma_B^2(x-\mu_A)y+\sigma_B^2(x-\mu_A)^2+\sigma_A^2 y^2-2\sigma_A^2\mu_B y+\sigma_A^2\mu_B^2}{\sigma_A^2\sigma_B^2}\right)}dy\\
+					&=\int_{-\infty}^\infty \frac{1}{2\pi\sigma_A\sigma_B}e^{-\frac{1}{2\sigma_A^2\sigma_B^2}\left((\sigma_A^2 + \sigma_B^2) y^2-2(\sigma_B^2(x-\mu_A)+\sigma_A^2\mu_B)y+\sigma_B^2(x-\mu_A)^2+\sigma_A^2\mu_B^2\right)}dy\\
+					&=\int_{-\infty}^\infty \frac{1}{2\pi\sigma_A\sigma_B}e^{-\frac{1}{2\sigma_A^2\sigma_B^2}\left((\sigma_A^2 + \sigma_B^2) y^2-2\frac{(\sigma_B^2(x-\mu_A)+\sigma_A^2\mu_B)\sqrt{\sigma_A^2 + \sigma_B^2}}{\sqrt{\sigma_A^2 + \sigma_B^2}}y+\sigma_B^2(x-\mu_A)^2+\sigma_A^2\mu_B^2\right)}dy\\
+					&=\int_{-\infty}^\infty \frac{1}{2\pi\sigma_A\sigma_B}e^{-\frac{1}{2\sigma_A^2\sigma_B^2}\left(\left(\sqrt{\sigma_A^2 + \sigma_B^2}y-\frac{\sigma_B^2(x-\mu_A)+\sigma_A^2\mu_B}{\sqrt{\sigma_A^2 + \sigma_B^2}}\right)^2-\frac{(\sigma_B^2(x-\mu_A)+\sigma_A^2\mu_B)^2}{\sigma_A^2 + \sigma_B^2}+\sigma_B^2(x-\mu_A)^2+\sigma_A^2\mu_B^2\right)}dy\\
+					&=\int_{-\infty}^\infty \frac{1}{2\pi\sigma_A\sigma_B}e^{-\frac{1}{2\sigma_A^2\sigma_B^2}\left(\left(\sqrt{\sigma_A^2 + \sigma_B^2}y-\frac{\sigma_B^2(x-\mu_A)+\sigma_A^2\mu_B}{\sqrt{\sigma_A^2 + \sigma_B^2}}\right)^2-\frac{(\sigma_B^2(x-\mu_A)+\sigma_A^2\mu_B)^2}{\sigma_A^2 + \sigma_B^2}+\frac{(\sigma_A^2 + \sigma_B^2)(\sigma_B^2(x-\mu_A)^2+\sigma_A^2\mu_B^2)}{\sigma_A^2 + \sigma_B^2}\right)}dy\\
+					&=\int_{-\infty}^\infty \frac{1}{2\pi\sigma_A\sigma_B}e^{-\frac{1}{2\sigma_A^2\sigma_B^2}\left(\left(\sqrt{\sigma_A^2 + \sigma_B^2}y-\frac{\sigma_B^2(x-\mu_A)+\sigma_A^2\mu_B}{\sqrt{\sigma_A^2 + \sigma_B^2}}\right)^2+\frac{\sigma_A^2\sigma_B^2}{\sigma_A^2+\sigma_B^2}(-2(x-\mu_A)\mu_B+(x-\mu_A)^2+\mu_B^2)\right)}dy\\
+					\end{align*}
+					\begin{align*}
+					&=\int_{-\infty}^\infty \frac{1}{2\pi\sigma_A\sigma_B}e^{-\frac{1}{2\sigma_A^2\sigma_B^2}\left(\left(\sqrt{\sigma_A^2 + \sigma_B^2}y-\frac{\sigma_B^2(x-\mu_A)+\sigma_A^2\mu_B}{\sqrt{\sigma_A^2 + \sigma_B^2}}\right)^2+\frac{\sigma_A^2\sigma_B^2}{\sigma_A^2+\sigma_B^2}(x-\mu_A-\mu_B)^2\right)}dy\\
+					&=\int_{-\infty}^\infty \frac{1}{\frac{\sigma_A\sigma_B}{\sqrt{\sigma_A^2+\sigma_B^2}}\sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{y-\frac{\sigma_B^2(x-\mu_A)+\sigma_A^2\mu_B}{\sigma_A^2 + \sigma_B^2}}{\frac{\sigma_A\sigma_B}{\sqrt{\sigma_A^2+\sigma_B^2}}}\right)^2}\frac{1}{\sqrt{\sigma_A^2+\sigma_B^2}\sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{x-\mu_A-\mu_B}{\sqrt{\sigma_A^2+\sigma_B^2}}\right)^2}dy\\
+					&=f\left(x;\mu_A+\mu_B,\sqrt{\sigma_A^2+\sigma_B^2}\right)\int_{-\infty}^\infty f\left(y;\frac{\sigma_B^2(x-\mu_A)+\sigma_A^2\mu_B}{\sigma_A^2 + \sigma_B^2},\frac{\sigma_A\sigma_B}{\sqrt{\sigma_A^2+\sigma_B^2}}\right)dy\\
+					&=f\left(x;\mu_A+\mu_B,\sqrt{\sigma_A^2+\sigma_B^2}\right)
+					\end{align*}
+				</p>
+				<p>
+					So as desired, $C=A+B$ is normally distributed, and the particular parameters are $\mu_C=\mu_A+\mu_B$ and
+					$\sigma_C=\sqrt{\sigma_A^2+\sigma_B^2}$.
+				</p>
+			</div>
+
+			<h2>$P(A>B)$ for normal random variables</h2>
+			<div class="tsect_body">
+				Now we can jump into solving the first problem when designing our rating system: finding the probability of one player
+				defeating another player.  We want to find
+				$$P(A>B|A\sim N(\mu_A,\sigma_A), B\sim N(\mu_B,\sigma_B)),$$
+				but notice that if $C=B-A)$ then $C\sim N\left(\mu_B-\mu_A,\sqrt{\sigma_A^2+\sigma_B^2}\right)$ so we can instead find
+				$$P(C<0)=F\left(0;\mu_B-\mu_A,\sqrt{\sigma_A^2+\sigma_B^2}\right)=\Phi\left(\frac{\mu_A-\mu_B}{\sqrt{\sigma_A^2+\sigma_B^2}}\right).$$
+				We will just refer to $P(A>B)$ as $P$ when it is unambiguous.  Sometimes we will use $1-P$ to mean $P(B>A)$.  We usually
+				assume that $A$ wins and give the formulas for this case, as the formulas for the case when $B$ wins can be found by
+				relabeling.
+				<p>
+					Our next order of business will be constructing estimations on the mean and standard deviation of $A$ and $B$ given $A>B$.
+					We will later use these to update the mean and standard deviation for a player after a game.
+				</p>
+			</div>
+
+			<h2>$E(A|A>B)$ for normal random variables</h2>
+			<div class="tsect_body">
+				$$E(A|A>B)=\frac{\int_{-\infty}^\infty xf_A(x)F_B(x)dx}{\int_{-\infty}^\infty f_A(x)F_B(x)dx}$$
+				We can recognize the denominator as an expression for $P(A>B)$, and then we want to apply integration by parts to the
+				numerator, integrating $xf_A(x)$ and differentiating $F_B(x)$.  First (using a table of exponential integrals and
+				$u$-substitution)
+				$$\int xf_A(x)dx=-\sigma_A^2f_A(x)+\mu_A F_A(x)$$
+				so
+				<p>
+				\begin{align*}
+				\int_{-\infty}^\infty xf_A(x)F_B(x)dx&=\left[\left(-\sigma_A^2 f_A(x)+\mu_A F_A(x)\right)F_B(x)\right]_{-\infty}^\infty+\int_{\infty}^\infty\left(\sigma_A^2 f_A(x)-\mu_A F_A(x)\right)f_B(x)dx\\
+				&=\mu_A\left[F_A(x)F_B(x)\right]_{-\infty}^\infty+\sigma_A^2\int_{\infty}^\infty f_A(x)f_B(x)dx-\mu_A\int_{\infty}^\infty F_A(x)f_B(x)dx.
+				\end{align*}
+				Now, we can compute each of these in turn: $[F_A(x)F_B(x)]_{\infty}^\infty=1$ because $F_A(x)$ is a cdf so it
+				goes from $0$ to $1$, $\int_{\infty}^\infty F_A(x)f_B(x)dx=1-P$ because this is an expression for $P(B>A)$ and for us
+				$P(A=B)=0$ because we are modelling $A$ and $B$ as continuous random variables.
+				That leaves $\int_{\infty}^\infty f_A(x)f_B(x)dx$.
+				Remember $f_A(x)f_B(x)dx$ is just shorthand for $f(x;\mu_A,\sigma_A)f(x;\mu_B,\sigma_B)$. 
+				By completing the square like we did when proving the sum of two normal random variables is normally
+				distributed, we can show that
+				$$f(x;\mu_A,\sigma_A)f(x;\mu_B,\sigma_B)=f\left(x;\frac{\sigma_B^2\mu_A+\sigma_A^2\mu_B}{\sigma_A^2+\sigma_B^2},\frac{\sigma_A\sigma_B}{\sqrt{\sigma_A^2+\sigma_B^2}}\right)f\left(0;\mu_A-\mu_B,\sqrt{\sigma_A^2+\sigma_B^2}\right)$$
+				and so it becomes a single normal pdf times a normal pdf evaluated at $0$.  When we integrate, the normal pdf evaluated at
+				$0$ is a constant term that we can pull out of the integral, and then the integral of the other pdf which has argument
+				$x$ is simply $1$, so we get
+				$$\int_{\infty}^\infty f_A(x)f_B(x)dx=f_{A-B}(0)$$
+				and all in all we get
+				$$E(A|A>B)=\frac{1}{P}\left(\mu_A+\sigma_A^2 f_{A-B}(0)-\mu_A(1-P)\right)=\mu_A+\frac{\sigma_A^2}{P}f_{A-B}(0).$$
+				</p>
+			</div>
+			
+			<h2>$E(B|A>B)$ for normal random variables</h2>
+			<div class="tsect_body">
+				$$E(B|A>B)=\frac{1}{P}\int_{-\infty}^\infty x(1-F_A(x))f_B(x)dx$$
+				\begin{align*}
+				&=\frac{1}{P}\left(\int_{-\infty}^\infty xf_B(x)dx-\int_{-\infty}^\infty xF_A(x)f_B(x)dx\right)\\
+				&=\frac{\mu_B}{P}-\frac{1-P}{P}\cdot\frac{1}{1-P}\int_{-\infty}^\infty xF_A(x)f_B(x)dx\\
+				&=\frac{\mu_B}{P}-\frac{1-P}{P}\left(\mu_B+\frac{\sigma_B^2}{(1-P)}f_{B-A}(0)\right)\\
+				&=\mu_B-\frac{\sigma_B^2}{P}f_{A-B}(0)
+				\end{align*}
+			</div>
+
+			<h2>$Var(A|A>B)$ for normal random variables</h2>
+			<div class="tsect_body">
+				Here and in the next calculation we will define $\mu_a=E(A|A>B)$, $\mu_b=E(B|A>B)$, $\sigma_a^2=Var(A|A>B)$, and
+				$\sigma_b^2=Var(B|A>B)$.
+				\begin{align*}
+				Var(A|A>B)&=E((A-E(A|A>B)^2|A>B)\\
+				&=E(A^2-2\mu_a A+\mu_a^2|A>B)\\
+				&=E(A^2|A>B)-\mu_a^2\\
+				&=\frac{1}{P}\int_{-\infty}^\infty x^2 f_A(x)F_B(x)dx-\mu_a^2
+				\end{align*}
+				<p>
+					Now we need to compute the integral by integration by parts.  Note that
+					$$\int x^2 f_A(x)dx=(\mu_A^2+\sigma_A^2)F_A(x)-\sigma_A^2(x+\mu_A)f_A(x).$$
+				</p>
+				<p>
+					So
+					\begin{align*}
+					\int_{-\infty}^\infty x^2 f_A(x)F_B(x)dx=&\left[\left((\mu_A^2+\sigma_A^2)F_A(x)-\sigma_A^2(x+\mu_A)f_A(x)\right)F_B(x)\right]_{-\infty}^\infty\\
+					&-\int_{-\infty}^\infty\left((\mu_A^2+\sigma_A^2)F_A(x)-\sigma_A^2(x+\mu_A)f_A(x)\right)f_B(x)dx\\
+					=&\mu_A^2+\sigma_A^2-(\mu_A^2+\sigma_A^2)\int_{-\infty}^\infty F_A(x)f_B(x)dx+\sigma_A^2\int_{-\infty}^\infty(x+\mu_A)f_A(x)f_B(x)dx\\
+					=&P(\mu_A^2+\sigma_A^2)+\sigma_A^2\int_{-\infty}^\infty(x+\mu_A)f_A(x)f_B(x)dx.
+					\end{align*}
+				</p>
+				<p>
+					Recall that $f_A(x)f_B(x)=f\left(x;\frac{\sigma_B^2\mu_A+\sigma_A^2\mu_B}{\sigma_A^2+\sigma_B^2},\frac{\sigma_A\sigma_B}{\sqrt{\sigma_A^2+\sigma_B^2}}\right)f_{A-B}(0)$.
+					We will define $\mu_{AB}=\frac{\sigma_B^2\mu_A+\sigma_A^2\mu_B}{\sigma_A^2+\sigma_B^2}$
+					and $\sigma_{AB}=\frac{\sigma_A\sigma_B}{\sqrt{\sigma_A^2+\sigma_B^2}}$.
+				</p>
+				<p>
+					Note that these do not correspond to the product of $A$ and $B$ but rather come from suitably decomposing the product
+					of their pdfs.
+				</p>
+				<p>
+					Then $f_{A-B}(0)$ can be factored out of the remaining integral and we can resolve it by finding the expected value of $x-\mu_A$ for $f(x;\mu_{AB},\sigma_{AB})$.  Thus we have
+					\begin{align*}
+					\int_{-\infty}^\infty x^2 f_A(x)F_B(x)dx=&P(\mu_A^2+\sigma_A^2)+\sigma_A^2f_{A-B}(0)(\mu_{AB}+\mu_A)
+					\end{align*}
+					and we can substitute this into the equation for $Var(A|A>B)$ to get
+					\begin{align*}
+					Var(A|A>B)=&\mu_A^2-\mu_a^2+\sigma_A^2+\frac{\sigma_A^2}{P}f_{A-B}(0)(\mu_{AB}+\mu_A)\\
+					=&\sigma_A^2+\frac{\sigma_A^2}{P}f_{A-B}(0)\left(\mu_{AB}-\mu_A-\frac{\sigma_A^2}{P}f_{A-B}(0)\right)\\
+					=&\sigma_A^2\left(1-\frac{f_{A-B}(0)}{P}\left(\mu_A-\mu_{AB}+\frac{\sigma_A^2 f_{A-B}(0)}{P}\right)\right)\\
+					=&\sigma_A^2\left(1-\frac{\sigma_A^2 f_{A-B}(0)}{P}\left(\frac{\mu_A-\mu_B}{\sigma_A^2+\sigma_B^2}+\frac{f_{A-B}(0)}{P}\right)\right)
+					\end{align*}
+				</p>
+				<p>
+					If we define $\mu_{B-A}$ as $\mu_A-\mu_B$ and $\sigma_{B-A}$ as $\sqrt{\sigma_A^2+\sigma_B^2}$,
+					we can write this in perhaps the nicest way $$\sigma_A^2+\frac{\sigma_A^4 f_{B-A}(0)}{P}\left(\frac{\mu_{B-A}}{\sigma_{B-A}^2}-\frac{f_{B-A}(0)}{P}\right).$$
+				</p>
+			</div>
+
+			<h2>$Var(B|A>B)$ for normal random variables</h2>
+			<div class="tsect_body">
+				As in the previous section we get
+				\begin{align*}
+				Var(B|A>B)=&E((B-E(B|A>B))^2|A>B)\\
+				=&E(B^2-2\mu_b B+\mu_b^2|A>B)\\
+				=&E(B^2|A>B)-\mu_b^2\\
+				=&\frac{1}{P}\int_{-\infty}^\infty x^2(1-F_A(x))f_B(x)dx-\mu_b^2
+				\end{align*}
+				and we can focus on the integral (using the expected value of $x^2$ for $f_B$ and the integral from last section) to get
+				\begin{align*}
+				\frac{1}{P}\int_{-\infty}^\infty x^2(1-F_A(x))f_B(x)dx=&\frac{1}{P}\int_{-\infty}^\infty x^2 f_B(x)dx-\frac{1}{P}\int_{-\infty}^\infty x^2 F_A(x)f_B(x)dx\\
+				=&\frac{\mu_B^2+\sigma_B^2}{P}-\frac{1-P}{P}(\mu_B^2+\sigma_B^2)-\frac{\sigma_B^2}{P}f_{A-B}(0)(\mu_{AB}+\mu_B)\\
+				=&\mu_B^2+\sigma_B^2-\frac{\sigma_B^2}{P}f_{A-B}(0)(\mu_{AB}+\mu_B).
+				\end{align*}
+				We can substitute this back into the equation for $Var(B|A>B)$ to get
+				\begin{align*}
+				Var(B|A>B)=&\mu_B^2-\mu_b^2+\sigma_B^2-\frac{\sigma_B^2}{P}f_{A-B}(0)(\mu_{AB}+\mu_B)\\
+				=&\sigma_B^2+\frac{\sigma_B^4 f_{B-A}(0)}{P}\left(\frac{\mu_{B-A}}{\sigma_{B-A}^2}-\frac{f_{B-A}(0)}{P}\right).
+				\end{align*}
+			</div>
+
+			<h1>The Normal rating system</h1>
+			<div class="tsect_body">
+				Now, suppose $A\sim N(\mu_A,\sigma_A)$ is the estimated performance distribution for the winning player before the game (or selected choice before
+				selection), and $B\sim N(\mu_B,\sigma_B)$ is the same for the losing player (not selected choice).  Based on the calculations we just did, we can
+				define the parameters of the estimated performance distributions after the game as
+				\begin{align*}
+				\mu_A\to&\mu_A+\frac{\sigma_A^2}{P}f_{B-A}(0)\\
+				\sigma_A^2\to&\sigma_A^2+\frac{\sigma_A^4 f_{B-A}(0)}{P}\left(\frac{\mu_{B-A}}{\sigma_{B-A}^2}-\frac{f_{B-A}(0)}{P}\right)\\
+				\mu_B\to&\mu_B-\frac{\sigma_B^2}{P}f_{B-A}(0)\\
+				\sigma_B^2\to&\sigma_B^2+\frac{\sigma_B^4 f_{B-A}(0)}{P}\left(\frac{\mu_{B-A}}{\sigma_{B-A}^2}-\frac{f_{B-A}(0)}{P}\right).\\
+				\end{align*}
+				Simply put, $\mu_A$ and $\sigma_A$ are the average performance and performance volitility of player $A$, which together constitute player A's
+				rating.
+				If we want, we can perform multiple updates "simultaniously" by summing the changes to the mean and taking the product of the changes to the
+				variance as the change for the mean and variance of each player (or choice) that was involved.
+				For instance, when we are using the Normal rating system to rank choices and present the user with $k$ choices to select their favorites from,
+				the updates to the ratings of all choices should be performed simultaniously using this system.
+			</div>
+
+			<h1>Future Directions</h1>
+			<div class="tsect_body">
+				After some testing, the rating system performs quite adequately at ranking choices.
+				However, for it to be maximally effective, we would need to develop a better method for selecting the set of choices we present to the user at
+				each step.
+				<p>
+				There are a few considerations.  We want to prioritize sets of choices with similar mean ratings, since choices with highly disparate mean ratings
+				are unlikely to give us much information and presenting them even encourages the user to ignore middling options they might otherwise select
+				if the available choices were all similar in mean rating.
+				</p>
+				<p>
+				Additionally, we want to prioritize choices with high rating variance, since these are the ones whose ratings we are least sure of.
+				We can quantify exactly how desireable each set of choices is by calculating the Shannon information from all the nontrivial subsets.
+				Then we prefer choosing sets of choices with higher Shannon information.
+				</p>
+				<p>
+				A good way to achieve this is to set up a fast mixing Markov process over the set of sets of choices and use this to pick a set of choices.
+				To do this, we would need to identify whether using probabilities proportional to a power of the Shannon information, an exponential function,
+				or potentially something else is optimal, and then design a Markov process which produces this distribution.
+				</p>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
+

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>All the Pokemon</title>
+	<link rel="stylesheet" type="text/css" href="main.css" media="screen"/>
+	<link rel="icon" type="image/x-icon" href="trophy.png"/>
+	<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.1/underscore-min.js" integrity="sha512-ZuOjyqq409+q6uc49UiBF3fTeyRyP8Qs0Jf/7FxH5LfhqBMzrR5cwbpDA4BgzSo884w6q/+oNdIeHenOqhISGw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<script type="text/javascript" id="Mathjs-script" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.2/math.min.js" integrity="sha512-X8Y5jFgsf/zxQN1X83Tdp1eHCzY52EfcYrDpbLxffRpF3Cyub7v9Jo0b5uwt1x6/h3ZnFzjL+yK12y1f7Q2zhg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<script type="text/javascript" src="pokedex2.js"></script>
+	<script type="text/javascript" src="pokemon.js"></script>
+	<script type="text/javascript" src="main.js"></script>
+</head>
+<body>
+	<div id="float_hdr">
+		<table>
+			<colgroup>
+				<col span="1" style="width: 33%;">
+				<col span="1" style="width: 33%;">
+				<col span="1" style="width: 33%;">
+			</colgroup>
+			<tbody>
+				<tr>
+					<td class="cur_subpage_link">Rating/Ranking</td>
+					<td class="cur_subpage_link">Demo</td>
+					<td class="subpage_link"><a href="explanation.html">Explanation</a></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div id="hidden_hdr"></div>
+	<div class="subpage" id="main_page">
+		<div class="tsect">
+			<h1>Select 1-7 of these 8 which are your favorites</h1>
+			<div class="tsect_grid" id="choice_holder"></div>
+			<br>
+			<div class="tsect_inline" id="update_ranking_button">
+				Update Ranking!
+			</div>
+			<div class="tsect_inline" id="entropy_label" title="estimate of how accurate the ranking is so far">
+				Ranking information: ???
+			</div>
+			<input type="text" class="tsect_inline" id="serialized_io" placeholder="save/load ratings from string" spellcheck="false" title="[enter] on empty field to save">
+			<h1>Current Ranking</h1>
+			<div class="tsect_grid" id="pokemon_holder"></div>
+			<p>
+			Copyright 2021 by hacatu.  Distributed under MPL 2.0.  Pokemon/type images are copyright by smogon.  Thumbnail image is copyright by Mozilla.  Libraries are copyright by their authors.
+			</p>
+		</div>
+	</div>
+</body>
+</html>
+
